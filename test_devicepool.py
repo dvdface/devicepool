@@ -3,7 +3,8 @@
 
 from unittest import TestCase
 
-from devicepool import DevicePool
+from devicepool import *
+import pytest
 
 
 
@@ -38,3 +39,41 @@ class TestDeviePool(TestCase):
 
         dev2 = pool.get(filter_func=lambda dev: dev.id == 3)
         self.assertTrue(dev2 == None)
+
+
+    def test_readonly(self):
+        try:
+            pool = DevicePool([{'id':1}, {'id':2}])
+            dev = pool.get()
+            dev.id = 3
+        except RuntimeError as re:
+            assert True
+            return
+        
+        assert False
+        
+
+    def test_writtable(self):
+        try:
+            pool = DevicePool([{'id':1}, {'id':2}])
+            dev = pool.get()
+            dev.x = 3
+        except RuntimeError as re:
+            assert False
+            return
+        
+        assert True
+
+    def test_free_after_write(self):
+        try:
+            pool = DevicePool([{'id':1}])
+            dev = pool.get()
+            dev.x = 3
+            del dev
+            dev = pool.get()
+            assert dev.x != 3 
+        except AttributeError as ae:
+            assert True
+            return
+        
+        assert False

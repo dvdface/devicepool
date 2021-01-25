@@ -5,13 +5,13 @@ import setuptools
 
 
 def readme():
-  with open('README', 'r') as f:
+  with open('README.md', 'r') as f:
     return f.read()
 
 setuptools.setup(
 	
 	name='devicepool',
-    version='2.0.0r1',
+    version='2.2.2',
     author='Ding Yi',
     author_email='dvdface@hotmail.com',
     url='https://github.com/dvdface/devicepool',

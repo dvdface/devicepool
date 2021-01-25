@@ -1,11 +1,15 @@
 import time
 
 
-class dotdict(dict):
+class ReadOnlyDotDict(dict):
     """dot.notation access to dictionary attributes"""
     __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
+
+    def __setattr__(self, k, v):
+        raise RuntimeError('%s is read only' % k)
+
+    def __setitem__(self, k, v):
+        raise RuntimeError('%s is read only' % k)
 
 
 class Device:
@@ -19,19 +23,43 @@ class Device:
             dev_info (dict): device information, must be a dict type
             device_pool (DevicePool): device pool object, used to free resource when don't need resource anymore
         """
-        assert isinstance(dev_info,  dict)
-        self.__dev_info = dev_info
+        assert isinstance(dev_info,  ReadOnlyDotDict)
+        self._dev_info = dev_info
+        self._device_manager = device_pool
+    
+    def __setattr__(self, name, value):
+        """Override the setattr, delegate the attribute with same name as inner ReadOnlyDict setter to readonlydict 
 
-        # extract key from dev_info, and put them in the Device object, so you can access them by dev.key1
-        for key in dev_info.keys():
-            self.__dict__[key] = dev_info[key]
+        Args:
+            name (str): attribute name to set
+            value (any): value to set
+        """
+        
+        if name != '_dev_info' and name in self._dev_info.keys():
+            self._dev_info.__setitem__(name, value)
+        else:
+            object.__setattr__(self, name, value)
 
-        self.__device_manager = device_pool
+
+    def __getattr__(self, name):
+        """Override the getattr, so you can access attribute by dot
+
+        Args:
+            name (str): attribute name to access
+
+        Returns:
+            Any: value
+        """
+        if name != '_dev_info' and name in self._dev_info.keys():
+            return self._dev_info.__getattr__(name)
+        else:
+            return object.__getattr__(self, name)
+
 
     def __del__(self):
         """ free resource when the Device object get freed
         """
-        self.__device_manager._DevicePool__free(self.__dev_info)
+        self._device_manager._DevicePool__free(self._dev_info)
 
 
 class DevicePool:
@@ -50,7 +78,7 @@ class DevicePool:
             assert type(d) == dict, 'type of element in list must be dict type'
         
         # used to manage availble resource
-        self.__available_devices = [ dotdict(d) for d in resource_list ]
+        self.__available_devices = [ ReadOnlyDotDict(d) for d in resource_list ]
         # used to manage unavaible resource
         self.__unavailable_devices = [ ]
 
@@ -86,12 +114,17 @@ class DevicePool:
         """free the device you get
 
         Args:
-            dev (dotdict): [description]
+            dev (ReadOnlyDotDict): device to free
         """
         if dev in self.__unavailable_devices:
             self.__unavailable_devices.remove(dev)
             if dev not in self.__available_devices:
                 self.__available_devices.append(dev)
 
-if __name__ == "__main__":
-    print(dir(DevicePool))
+
+__all__ = [
+    
+    'DevicePool',
+    'Device',
+    'ReadOnlyDotDict'
+]
