@@ -77,3 +77,11 @@ class TestDeviePool(TestCase):
             return
         
         assert False
+    
+    def test_size(self):
+        pool = DevicePool([{'id':1}])
+        assert pool.size == 1
+        dev = pool.get()
+        assert pool.size == 0
+        del dev
+        assert pool.size == 1

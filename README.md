@@ -1,4 +1,5 @@
 # changelist
+* 2.3.0,  add size property for DevicePool, so you can know how many available resources in the pool
 * 2.2.2,  fix readme problem
 * 2.2.1,  fix readme problem
 * 2.2.0,  make device returned by devicepool writtable but can modify the attribute assigned from DevicePool
@@ -34,6 +35,9 @@
 	```
 4. get a device from the pool
 	```
+	# know how many available resource in the pool
+	devicepool.size
+	
 	# allocate any dev from resource pool
 	dev = devicepool.get()
 

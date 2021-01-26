@@ -109,6 +109,11 @@ class DevicePool:
                 if wait_time >= timeout:
                     return None
 
+    @property
+    def size(self):
+        """the number of  available resources  in the pool
+        """
+        return len(self.__available_devices)
 
     def __free(self, dev):
         """free the device you get
