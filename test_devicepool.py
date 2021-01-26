@@ -10,7 +10,7 @@ import pytest
 
 class TestDeviePool(TestCase):
 
-    def test_get_and_free(self):
+    def test_basic(self):
         pool = DevicePool([{'id':1}, {'id':2}])
         dev1 = pool.get()
         dev2 = pool.get()
@@ -30,7 +30,6 @@ class TestDeviePool(TestCase):
         dev6 = pool.get()
         self.assertTrue(dev6.id == 2)
 
-
     def test_filter(self):
         pool = DevicePool([{'id':1}, {'id':2}])
         dev1 = pool.get(filter_func=lambda dev: dev.id == 2)
@@ -39,7 +38,6 @@ class TestDeviePool(TestCase):
 
         dev2 = pool.get(filter_func=lambda dev: dev.id == 3)
         self.assertTrue(dev2 == None)
-
 
     def test_readonly(self):
         try:
@@ -52,19 +50,7 @@ class TestDeviePool(TestCase):
         
         assert False
         
-
     def test_writtable(self):
-        try:
-            pool = DevicePool([{'id':1}, {'id':2}])
-            dev = pool.get()
-            dev.x = 3
-        except RuntimeError as re:
-            assert False
-            return
-        
-        assert True
-
-    def test_free_after_write(self):
         try:
             pool = DevicePool([{'id':1}])
             dev = pool.get()
@@ -77,7 +63,7 @@ class TestDeviePool(TestCase):
             return
         
         assert False
-    
+
     def test_size(self):
         pool = DevicePool([{'id':1}])
         assert pool.size == 1
@@ -85,3 +71,11 @@ class TestDeviePool(TestCase):
         assert pool.size == 0
         del dev
         assert pool.size == 1
+    
+    def test_stress(self):
+        pool = DevicePool([{'id':1}])
+        for i in range(0, 10000):
+            assert pool.size == 1
+            dev = pool.get()
+            assert pool.size == 0
+            dev = None
