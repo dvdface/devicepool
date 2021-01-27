@@ -79,3 +79,12 @@ class TestDeviePool(TestCase):
             dev = pool.get()
             assert pool.size == 0
             dev = None
+    
+    def test_free(self):
+        pool = DevicePool([{'id':1}])
+        for i in range(0, 10000):
+            assert pool.size == 1
+            dev = pool.get()
+            assert pool.size == 0
+            dev.free()
+            assert pool.size == 1

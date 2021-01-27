@@ -35,7 +35,7 @@ class Device:
             value (any): value to set
         """
         
-        if name != '_dev_info' and name in self._dev_info.keys():
+        if name not in  ['_dev_info', '_device_manager'] and name in self._dev_info.keys():
             self._dev_info.__setitem__(name, value)
         else:
             object.__setattr__(self, name, value)
@@ -50,7 +50,7 @@ class Device:
         Returns:
             Any: value
         """
-        if name != '_dev_info' and name in self._dev_info.keys():
+        if name not in  ['_dev_info', '_device_manager'] and name in self._dev_info.keys():
             return self._dev_info.__getattr__(name)
         else:
             return object.__getattr__(self, name)
@@ -59,8 +59,16 @@ class Device:
     def __del__(self):
         """ free resource when the Device object get freed
         """
-        self._device_manager._DevicePool__free(self._dev_info)
+        self.free()
+        
 
+    def free(self):
+        """ free resource activately
+        """
+        if  self._device_manager != None and self._dev_info != None:
+            self._device_manager._free(self._dev_info)
+            self._dev_info = None
+            self._device_manager = None
 
 class DevicePool:
     """Device Pool
@@ -115,7 +123,7 @@ class DevicePool:
         """
         return len(self.__available_devices)
 
-    def __free(self, dev):
+    def _free(self, dev):
         """free the device you get
 
         Args:

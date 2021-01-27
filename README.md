@@ -1,4 +1,6 @@
 # changelist
+* 2.3.2,  update readme
+* 2.3.1,  add free function for Device, so you can free Device by call free()
 * 2.3.0,  add size property for DevicePool, so you can know how many available resources in the pool
 * 2.2.2,  fix readme problem
 * 2.2.1,  fix readme problem
@@ -61,5 +63,5 @@
 	```
 7. free the device, or let't it free automatically
 	```
-	del dev
+	dev.free()
 	```
