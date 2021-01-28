@@ -11,7 +11,7 @@ def readme():
 setuptools.setup(
 	
 	name='devicepool',
-    version='2.3.2',
+    version='3.0.0',
     author='Ding Yi',
     author_email='dvdface@hotmail.com',
     url='https://github.com/dvdface/devicepool',

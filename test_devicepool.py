@@ -4,6 +4,7 @@
 from unittest import TestCase
 
 from devicepool import *
+import time
 import pytest
 
 
@@ -14,21 +15,19 @@ class TestDeviePool(TestCase):
         pool = DevicePool([{'id':1}, {'id':2}])
         dev1 = pool.get()
         dev2 = pool.get()
-        dev3 = pool.get()
 
         self.assertTrue(dev1.id == 1)
         self.assertTrue(dev2.id == 2)
-        self.assertTrue(dev3 == None)
 
-        del dev1
+        dev1.free()
+        dev3 = pool.get()
+        self.assertTrue(dev3.id == 1)
+
+        dev2.free()
         dev4 = pool.get()
-        self.assertTrue(dev4.id == 1)
-        dev5 = pool.get()
-        self.assertTrue(dev5 == None)
-
-        del dev2
-        dev6 = pool.get()
-        self.assertTrue(dev6.id == 2)
+        self.assertTrue(dev4.id == 2)
+        dev3.free()
+        dev4.free()
 
     def test_filter(self):
         pool = DevicePool([{'id':1}, {'id':2}])
@@ -40,26 +39,30 @@ class TestDeviePool(TestCase):
         self.assertTrue(dev2 == None)
 
     def test_readonly(self):
+
+        pool = DevicePool([{'id':1}, {'id':2}])
+        dev = pool.get()
         try:
-            pool = DevicePool([{'id':1}, {'id':2}])
-            dev = pool.get()
             dev.id = 3
         except RuntimeError as re:
             assert True
+            dev.free()
             return
         
         assert False
         
     def test_writtable(self):
+
+        pool = DevicePool([{'id':1}])
+        dev = pool.get()
         try:
-            pool = DevicePool([{'id':1}])
-            dev = pool.get()
             dev.x = 3
-            del dev
+            dev.free()
             dev = pool.get()
             assert dev.x != 3 
         except AttributeError as ae:
             assert True
+            dev.free()
             return
         
         assert False
@@ -69,7 +72,7 @@ class TestDeviePool(TestCase):
         assert pool.size == 1
         dev = pool.get()
         assert pool.size == 0
-        del dev
+        dev.free()
         assert pool.size == 1
     
     def test_stress(self):
@@ -78,7 +81,7 @@ class TestDeviePool(TestCase):
             assert pool.size == 1
             dev = pool.get()
             assert pool.size == 0
-            dev = None
+            dev.free()
     
     def test_free(self):
         pool = DevicePool([{'id':1}])
@@ -88,3 +91,11 @@ class TestDeviePool(TestCase):
             assert pool.size == 0
             dev.free()
             assert pool.size == 1
+
+
+    def test_force_free(self):
+        pool = DevicePool([{'id':1}])
+        dev = pool.get(rent_time=3)
+        assert pool.size == 0
+        time.sleep(5)
+        assert pool.size == 1

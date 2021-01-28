@@ -1,4 +1,5 @@
 # changelist
+* 3.0.0,  add force free: when time is up, the subthread in Device and DevicePool will free resource automatically
 * 2.3.2,  update readme
 * 2.3.1,  add free function for Device, so you can free Device by call free()
 * 2.3.0,  add size property for DevicePool, so you can know how many available resources in the pool

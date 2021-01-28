@@ -1,5 +1,5 @@
 import time
-
+from threading import Timer
 
 class ReadOnlyDotDict(dict):
     """dot.notation access to dictionary attributes"""
@@ -16,16 +16,29 @@ class Device:
     """ Device represesnt a resource
     """
 
-    def __init__(self, dev_info, device_pool):
+    def __init__(self, dev_info, device_pool, rent_time=120):
         """ init Device
 
         Args:
             dev_info (dict): device information, must be a dict type
             device_pool (DevicePool): device pool object, used to free resource when don't need resource anymore
+            time (int): how long you can possess this resource, in sec
         """
         assert isinstance(dev_info,  ReadOnlyDotDict)
+
+        # save dev related objects
         self._dev_info = dev_info
         self._device_manager = device_pool
+
+        # for record time
+        self._rent_time = rent_time
+        self._start_time = time.time()
+
+        # start a release timer
+        self._timer = Timer(rent_time, self._timeout)
+        self._timer.start()
+
+        
     
     def __setattr__(self, name, value):
         """Override the setattr, delegate the attribute with same name as inner ReadOnlyDict setter to readonlydict 
@@ -35,7 +48,7 @@ class Device:
             value (any): value to set
         """
         
-        if name not in  ['_dev_info', '_device_manager'] and name in self._dev_info.keys():
+        if name not in  ['_dev_info', '_device_manager', '_start_time', '_rent_time', '_timer'] and name in self._dev_info.keys():
             self._dev_info.__setitem__(name, value)
         else:
             object.__setattr__(self, name, value)
@@ -50,10 +63,10 @@ class Device:
         Returns:
             Any: value
         """
-        if name not in  ['_dev_info', '_device_manager'] and name in self._dev_info.keys():
+        if name not in  ['_dev_info', '_device_manager', '_start_time', '_rent_time', '_timer'] and name in self._dev_info.keys():
             return self._dev_info.__getattr__(name)
         else:
-            return object.__getattr__(self, name)
+            raise AttributeError("type object '%s' has no attribute '%s'" % (type(self), name))
 
 
     def __del__(self):
@@ -65,10 +78,28 @@ class Device:
     def free(self):
         """ free resource activately
         """
-        if  self._device_manager != None and self._dev_info != None:
+        if  self._device_manager != None and self._dev_info != None and self._timer != None:
             self._device_manager._free(self._dev_info)
             self._dev_info = None
             self._device_manager = None
+            self._timer.cancel()
+            self._timer = None
+    
+    def _timeout(self):
+        """report timeout error
+        """
+        raise TimeoutError('using resource is timeout')
+
+    @property
+    def time(self):
+        """how much time left before the device will force released
+
+        Returns:
+            int: the left time
+        """
+        left_time =  self._rent_time - (time.time() - self._start_time)
+
+        return int(left_time) if left_time > 0 else 0
 
 class DevicePool:
     """Device Pool
@@ -91,18 +122,20 @@ class DevicePool:
         self.__unavailable_devices = [ ]
 
 
-    def get(self, filter_func= lambda dev : True, timeout = 0):
+    def get(self, rent_time = 60, filter_func= lambda dev : True, timeout = 0):
 
         """ allocate reousrce from pool
         
         Args：
-            filter_func(function): used to filter device, so you can get the exact device you want, for example, 'lambda dev: dev.id == 1', you can get the device with id attribute is 1
-            timeout(int): in sec. how long do you want to wait, when there is no resource available, default 0 sec
+            time (int): in sec. how long to rent. if time exceed the rent time, the pool will force release the device
+            filter_func (function): used to filter device, so you can get the exact device you want, for example, 'lambda dev: dev.id == 1', you can get the device with id attribute is 1
+            timeout (int): in sec. how long do you want to wait, when there is no resource available, default 0 sec
         
         Returns:
             Device: return a device object. if timeout, return None
         """
         assert timeout >= 0, "timeout can't be negtive"
+        assert rent_time > 0, "rent time can't less than zero"
 
         start_time = time.time()
         while True:
@@ -111,7 +144,12 @@ class DevicePool:
                 dev = device[0]
                 self.__available_devices.remove(dev)
                 self.__unavailable_devices.append(dev)
-                return Device(dev, self)
+
+                def force_free():
+                    self._free(dev)
+                Timer(rent_time, force_free).start()
+
+                return Device(dev, self, rent_time=rent_time)
             else:
                 wait_time = time.time() - start_time
                 if wait_time >= timeout:
