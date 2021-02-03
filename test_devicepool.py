@@ -95,7 +95,10 @@ class TestDeviePool(TestCase):
 
     def test_force_free(self):
         pool = DevicePool([{'id':1}])
-        dev = pool.get(rent_time=3)
-        assert pool.size == 0
-        time.sleep(5)
-        assert pool.size == 1
+        try:
+            
+            dev = pool.get(rent_time=3)
+            assert pool.size == 0
+            time.sleep(5)
+        except TimeoutError as tme:
+            assert pool.size == 1

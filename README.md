@@ -1,4 +1,6 @@
 # changelist
+* 4.0.0,  when timeout, throws TimeoutError in the test running thread other than Timer Thread
+* 3.0.1,  give thread a name for timer thread in the Device and DevicePool.so you can see which thread is free thread
 * 3.0.0,  add force free: when time is up, the subthread in Device and DevicePool will free resource automatically
 * 2.3.2,  update readme
 * 2.3.1,  add free function for Device, so you can free Device by call free()
@@ -49,6 +51,9 @@
 
 	# use timeout to wait, default timeout is zero
 	dev = devicepool.get(timeout=10)
+	
+	# specify rent time, default is 120 sec
+	dev = devicepool.get(rent_time=360)
 	```
 5. check if allocating device is successfully
 	```

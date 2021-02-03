@@ -1,5 +1,7 @@
+import threading
 import time
 from threading import Timer
+import ctypes
 
 class ReadOnlyDotDict(dict):
     """dot.notation access to dictionary attributes"""
@@ -35,7 +37,9 @@ class Device:
         self._start_time = time.time()
 
         # start a release timer
+        self.thread_id = threading.current_thread().native_id
         self._timer = Timer(rent_time, self._timeout)
+        self._timer.name = 'dev-free-timer'
         self._timer.start()
 
         
@@ -88,7 +92,7 @@ class Device:
     def _timeout(self):
         """report timeout error
         """
-        raise TimeoutError('using resource is timeout')
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(self.thread_id, ctypes.py_object(TimeoutError))
 
     @property
     def time(self):
@@ -147,8 +151,9 @@ class DevicePool:
 
                 def force_free():
                     self._free(dev)
-                Timer(rent_time, force_free).start()
-
+                timer = Timer(rent_time, force_free)
+                timer.name = 'devpool-free-timer'
+                timer.start()
                 return Device(dev, self, rent_time=rent_time)
             else:
                 wait_time = time.time() - start_time
